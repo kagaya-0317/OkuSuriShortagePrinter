@@ -114,9 +114,15 @@
                     <label><input type="radio" name="arrive" value="arriveUndecided" checked /> 未定</label>
                     <label><input type="radio" name="arrive" value="arriveTodayPm" /> 本日の午後</label>
                     <label><input type="radio" name="arrive" value="arriveTomorrowAm" /> 明日の朝</label>
+                    <label><input type="radio" name="arrive" value="arriveWeekdayAm" /> <span id="arriveWeekdayAmLabel">◯曜日の朝</span></label>
+                    <label><input type="radio" name="arrive" value="arriveWeekdayNextAm" /> <span id="arriveWeekdayNextAmLabel">◯曜日の朝</span></label>
                     <label><input type="radio" name="arrive" value="arriveOther" /> その他</label>
                   </div>
-                  <input id="arriveOtherText" class="sub-input" type="text" placeholder="自由入力" hidden />
+                  <div id="arriveOtherRow" class="sub-input-row" hidden>
+                    <input id="arriveOtherText" class="sub-input" type="text" placeholder="自由入力 またはカレンダーから選択" />
+                    <button id="arriveOtherDateBtn" class="sub-input-calendar-btn" type="button" aria-label="日付を選択">📅</button>
+                    <input id="arriveOtherDatePicker" class="date-picker-proxy" type="date" tabindex="-1" aria-hidden="true" />
+                  </div>
                   <div class="panel-actions">
                     <button class="btn prev" type="button" data-prev-step="2">前へ</button>
                     <button class="btn next" type="button" data-next-step="4">次へ</button>
@@ -131,15 +137,7 @@
                 </button>
                 <div class="qa-panel">
                   <div id="destinationQuestion" class="question">◯◯（薬品名）の入荷先は？</div>
-                  <div class="choices">
-                    <label><input type="radio" name="dest" value="destUnknown" checked /> 不明</label>
-                    <label><input type="radio" name="dest" value="destMediceo" /> メディセオ</label>
-                    <label><input type="radio" name="dest" value="destSuzuken" /> スズケン</label>
-                    <label><input type="radio" name="dest" value="destVital" /> バイタル</label>
-                    <label><input type="radio" name="dest" value="destAlfresa" /> アルフレッサ</label>
-                    <label><input type="radio" name="dest" value="destSmall" /> 小分け</label>
-                    <label><input type="radio" name="dest" value="destOther" /> その他</label>
-                  </div>
+                  <div id="destinationChoices" class="choices"></div>
                   <input id="destSmallText" class="sub-input" type="text" placeholder="小分け内容を入力" hidden />
                   <input id="destOtherText" class="sub-input" type="text" placeholder="入荷先を入力" hidden />
                   <div class="panel-actions">
@@ -227,6 +225,10 @@
             <input id="page1YellowFrameThickness" type="range" min="30" max="120" step="1" />
             <span id="page1YellowFrameThicknessValue" class="settings-value">3.0 mm</span>
           </div>
+        </div>
+        <div class="settings-item">
+          <label for="wholesalerList" class="settings-label">問屋リスト（/区切り）</label>
+          <input id="wholesalerList" type="text" placeholder="例：メディセオ/スズケン/バイタル/アルフレッサ" />
         </div>
       </div>
     </div>

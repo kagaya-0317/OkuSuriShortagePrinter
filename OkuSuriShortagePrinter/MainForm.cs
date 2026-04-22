@@ -20,7 +20,7 @@ public sealed class MainForm : Form
 
 	private sealed record DrugInput(string Drug, string DrugType, string DrugUsage, string ShortageCount, string ShortageDays, string ShortageUnit, string ShortageUnitOther, string Arrive, string ArriveOtherText, string Dest, string DestSmallText, string DestOtherText, string Notes);
 
-	private sealed record AppSettings(string PrinterName, int StartupWindowScalePercent, int UiScalePercent, int Page1YellowFrameThicknessTenthsMm);
+	private sealed record AppSettings(string PrinterName, int StartupWindowScalePercent, int UiScalePercent, int Page1YellowFrameThicknessTenthsMm, string WholesalerList);
 
 	private static readonly bool IsDevMode = string.Equals(Environment.GetEnvironmentVariable("OKUSURI_DEV"), "1", StringComparison.Ordinal);
 
@@ -49,6 +49,8 @@ public sealed class MainForm : Form
 	private const int MinPage1YellowFrameThicknessTenthsMm = 30;
 
 	private const int MaxPage1YellowFrameThicknessTenthsMm = 120;
+
+	private static readonly string[] DefaultWholesalerNames = new string[4] { "メディセオ", "スズケン", "バイタル", "アルフレッサ" };
 
 	private const int AspectWidth = 5;
 
@@ -242,6 +244,25 @@ public sealed class MainForm : Form
 		return ClampPage1YellowFrameThicknessTenthsMm(value);
 	}
 
+	private static string GetDefaultWholesalerList()
+	{
+		return string.Join("/", DefaultWholesalerNames);
+	}
+
+	private static string NormalizeWholesalerList(string value)
+	{
+		string[] array = (value ?? "").Replace('／', '/')
+			.Split('/')
+			.Select((string item) => (item ?? "").Trim())
+			.Where((string item) => item.Length > 0)
+			.ToArray();
+		if (array.Length == 0)
+		{
+			array = DefaultWholesalerNames;
+		}
+		return string.Join("/", array);
+	}
+
 	private static Size BuildClientSizeFromScalePercent(int scalePercent)
 	{
 		int normalizedPercent = ClampStartupWindowScalePercent(scalePercent);
@@ -251,7 +272,7 @@ public sealed class MainForm : Form
 
 	private static AppSettings NormalizeSettings(AppSettings settings)
 	{
-		return new AppSettings((settings.PrinterName ?? "").Trim(), ClampStartupWindowScalePercent(settings.StartupWindowScalePercent), ClampUiScalePercent(settings.UiScalePercent), NormalizePage1YellowFrameThicknessTenthsMm(settings.Page1YellowFrameThicknessTenthsMm));
+		return new AppSettings((settings.PrinterName ?? "").Trim(), ClampStartupWindowScalePercent(settings.StartupWindowScalePercent), ClampUiScalePercent(settings.UiScalePercent), NormalizePage1YellowFrameThicknessTenthsMm(settings.Page1YellowFrameThicknessTenthsMm), NormalizeWholesalerList(settings.WholesalerList ?? ""));
 	}
 
 	private static AppSettings LoadSettings()
@@ -260,19 +281,19 @@ public sealed class MainForm : Form
 		{
 			if (!File.Exists(SettingsFilePath))
 			{
-				return NormalizeSettings(new AppSettings("", DefaultStartupWindowScalePercent, DefaultUiScalePercent, DefaultPage1YellowFrameThicknessTenthsMm));
+				return NormalizeSettings(new AppSettings("", DefaultStartupWindowScalePercent, DefaultUiScalePercent, DefaultPage1YellowFrameThicknessTenthsMm, GetDefaultWholesalerList()));
 			}
 			string json = File.ReadAllText(SettingsFilePath);
 			AppSettings? loaded = JsonSerializer.Deserialize<AppSettings>(json);
 			if (loaded == null)
 			{
-				return NormalizeSettings(new AppSettings("", DefaultStartupWindowScalePercent, DefaultUiScalePercent, DefaultPage1YellowFrameThicknessTenthsMm));
+				return NormalizeSettings(new AppSettings("", DefaultStartupWindowScalePercent, DefaultUiScalePercent, DefaultPage1YellowFrameThicknessTenthsMm, GetDefaultWholesalerList()));
 			}
 			return NormalizeSettings(loaded);
 		}
 		catch
 		{
-			return NormalizeSettings(new AppSettings("", DefaultStartupWindowScalePercent, DefaultUiScalePercent, DefaultPage1YellowFrameThicknessTenthsMm));
+			return NormalizeSettings(new AppSettings("", DefaultStartupWindowScalePercent, DefaultUiScalePercent, DefaultPage1YellowFrameThicknessTenthsMm, GetDefaultWholesalerList()));
 		}
 	}
 
@@ -541,7 +562,8 @@ public sealed class MainForm : Form
 				uiScaleMax = MaxUiScalePercent,
 				page1YellowFrameThicknessTenthsMm = _settings.Page1YellowFrameThicknessTenthsMm,
 				page1YellowFrameThicknessMinTenthsMm = MinPage1YellowFrameThicknessTenthsMm,
-				page1YellowFrameThicknessMaxTenthsMm = MaxPage1YellowFrameThicknessTenthsMm
+				page1YellowFrameThicknessMaxTenthsMm = MaxPage1YellowFrameThicknessTenthsMm,
+				wholesalerList = _settings.WholesalerList
 			},
 			devMode = IsDevMode
 		});
@@ -561,7 +583,10 @@ public sealed class MainForm : Form
 		int startupWindowScalePercent = ClampStartupWindowScalePercent(ReadInt(msg, "startupWindowScalePercent", _settings.StartupWindowScalePercent));
 		int uiScalePercent = ClampUiScalePercent(ReadInt(msg, "uiScalePercent", _settings.UiScalePercent));
 		int page1YellowFrameThicknessTenthsMm = ClampPage1YellowFrameThicknessTenthsMm(ReadInt(msg, "page1YellowFrameThicknessTenthsMm", _settings.Page1YellowFrameThicknessTenthsMm));
-		AppSettings nextSettings = new AppSettings(printerName, startupWindowScalePercent, uiScalePercent, page1YellowFrameThicknessTenthsMm);
+		bool hasWholesalerList = msg.TryGetProperty("wholesalerList", out _);
+		string wholesalerRaw = hasWholesalerList ? ReadString(msg, "wholesalerList") : _settings.WholesalerList;
+		string wholesalerList = NormalizeWholesalerList(wholesalerRaw);
+		AppSettings nextSettings = new AppSettings(printerName, startupWindowScalePercent, uiScalePercent, page1YellowFrameThicknessTenthsMm, wholesalerList);
 		bool startupScaleChanged = nextSettings.StartupWindowScalePercent != _settings.StartupWindowScalePercent;
 		_settings = nextSettings;
 		SaveSettings(_settings);
@@ -944,6 +969,8 @@ public sealed class MainForm : Form
 			"arriveUndecided" => "", 
 			"arriveTodayPm" => "本日PM", 
 			"arriveTomorrowAm" => BuildNextArrivalAmText(today), 
+			"arriveWeekdayAm" => BuildWeekdayArrivalAmText(today), 
+			"arriveWeekdayNextAm" => BuildWeekdayNextArrivalAmText(today), 
 			"arriveOther" => arriveOtherText, 
 			_ => "", 
 		};
@@ -955,10 +982,32 @@ public sealed class MainForm : Form
 
 	private static string BuildDestinationDisplay(string dest, string destSmallText, string destOtherText)
 	{
+		string text = (dest ?? "").Trim();
+		const string vendorPrefix = "destVendor:";
+		if (text.StartsWith(vendorPrefix, StringComparison.Ordinal))
+		{
+			string encoded = text.Substring(vendorPrefix.Length);
+			if (!string.IsNullOrWhiteSpace(encoded))
+			{
+				try
+				{
+					string decoded = Uri.UnescapeDataString(encoded).Trim();
+					if (!string.IsNullOrWhiteSpace(decoded))
+					{
+						return decoded;
+					}
+				}
+				catch
+				{
+				}
+			}
+			return "";
+		}
+
 		if (1 == 0)
 		{
 		}
-		string result = dest switch
+		string result = text switch
 		{
 			"destUnknown" => "", 
 			"destMediceo" => "メディセオ", 
@@ -977,11 +1026,53 @@ public sealed class MainForm : Form
 
 	private static string BuildNextArrivalAmText(DateTime today)
 	{
+		DateTime dateTime = BuildNextArrivalAmDate(today);
+		string[] array = new string[7] { "日", "月", "火", "水", "木", "金", "土" };
+		return $"{dateTime.Month}月{dateTime.Day}日({array[(int)dateTime.DayOfWeek]})AM";
+	}
+
+	private static string BuildWeekdayArrivalAmText(DateTime today)
+	{
+		DateTime dateTime = BuildWeekdayArrivalAmDate(today);
+		string[] array = new string[7] { "日", "月", "火", "水", "木", "金", "土" };
+		return $"{dateTime.Month}月{dateTime.Day}日({array[(int)dateTime.DayOfWeek]})AM";
+	}
+
+	private static string BuildWeekdayNextArrivalAmText(DateTime today)
+	{
+		DateTime dateTime = BuildWeekdayNextArrivalAmDate(today);
+		string[] array = new string[7] { "日", "月", "火", "水", "木", "金", "土" };
+		return $"{dateTime.Month}月{dateTime.Day}日({array[(int)dateTime.DayOfWeek]})AM";
+	}
+
+	private static DateTime BuildWeekdayArrivalAmDate(DateTime today)
+	{
+		DateTime result = (today.DayOfWeek == DayOfWeek.Thursday) ? today.AddDays(4.0) : today.AddDays(2.0);
+		DateTime dateTime = BuildNextArrivalAmDate(today);
+		if (dateTime.DayOfWeek == DayOfWeek.Monday)
+		{
+			result = dateTime.AddDays(1.0);
+		}
+		return result;
+	}
+
+	private static DateTime BuildWeekdayNextArrivalAmDate(DateTime today)
+	{
+		DateTime dateTime = BuildWeekdayArrivalAmDate(today).AddDays(1.0);
+		if (dateTime.DayOfWeek == DayOfWeek.Saturday)
+		{
+			return dateTime.AddDays(2.0);
+		}
+		return dateTime;
+	}
+
+	private static DateTime BuildNextArrivalAmDate(DateTime today)
+	{
 		DayOfWeek dayOfWeek = today.DayOfWeek;
 		if (1 == 0)
 		{
 		}
-		DateTime dateTime = dayOfWeek switch
+		DateTime result = dayOfWeek switch
 		{
 			DayOfWeek.Friday => today.AddDays(3.0), 
 			DayOfWeek.Saturday => today.AddDays(2.0), 
@@ -990,9 +1081,7 @@ public sealed class MainForm : Form
 		if (1 == 0)
 		{
 		}
-		DateTime dateTime2 = dateTime;
-		string[] array = new string[7] { "日", "月", "火", "水", "木", "金", "土" };
-		return $"{dateTime2.Month}月{dateTime2.Day}日({array[(int)dateTime2.DayOfWeek]})";
+		return result;
 	}
 
 	private static string FormatReiwaDate(DateTime date)

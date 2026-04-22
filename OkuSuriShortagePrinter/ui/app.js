@@ -5,6 +5,9 @@
   const MIXED_SYRUP_UNIT = "mL";
   const DEFAULT_ARRIVE = "arriveUndecided";
   const DEFAULT_DEST = "destUnknown";
+  const DEST_VENDOR_PREFIX = "destVendor:";
+  const DEFAULT_WHOLESALER_NAMES = ["メディセオ", "スズケン", "バイタル", "アルフレッサ"];
+  const DEFAULT_WHOLESALER_LIST = DEFAULT_WHOLESALER_NAMES.join("/");
   const MAX_NOTES_LINES = 3;
   const DESIGN_VIEWPORT_WIDTH = 1000;
   const DESIGN_VIEWPORT_HEIGHT = 800;
@@ -45,10 +48,16 @@
   const elShortageQuestion = $("shortageQuestion");
   const elArrivalQuestion = $("arrivalQuestion");
   const elDestinationQuestion = $("destinationQuestion");
+  const elDestinationChoices = $("destinationChoices");
   const elDrugUsageWrap = $("drugUsageWrap");
   const elDrugUsageQuestion = $("drugUsageQuestion");
   const elDrugUsage = $("drugUsage");
+  const elArriveWeekdayAmLabel = $("arriveWeekdayAmLabel");
+  const elArriveWeekdayNextAmLabel = $("arriveWeekdayNextAmLabel");
+  const elArriveOtherRow = $("arriveOtherRow");
   const elArriveOtherText = $("arriveOtherText");
+  const elArriveOtherDateBtn = $("arriveOtherDateBtn");
+  const elArriveOtherDatePicker = $("arriveOtherDatePicker");
   const elDestSmallText = $("destSmallText");
   const elDestOtherText = $("destOtherText");
   const elNotes = $("notes");
@@ -86,6 +95,7 @@
   const elUiScaleValue = $("uiScaleValue");
   const elPage1YellowFrameThickness = $("page1YellowFrameThickness");
   const elPage1YellowFrameThicknessValue = $("page1YellowFrameThicknessValue");
+  const elWholesalerList = $("wholesalerList");
 
   const elPreviewModal = $("previewModal");
   const elPreviewFrame = $("previewFrame");
@@ -110,6 +120,8 @@
   let startupWindowScalePercent = DEFAULT_STARTUP_WINDOW_SCALE_PERCENT;
   let userUiScalePercent = DEFAULT_UI_SCALE_PERCENT;
   let page1YellowFrameThicknessTenthsMm = DEFAULT_PAGE1_YELLOW_FRAME_THICKNESS_TENTHS_MM;
+  let wholesalerListText = DEFAULT_WHOLESALER_LIST;
+  let wholesalerNames = DEFAULT_WHOLESALER_NAMES.slice();
   let previewScrollSource = null;
   let previewWindowSource = null;
   let previewSheetObserver = null;
@@ -149,7 +161,7 @@
       shortageUnitOther: (drug.shortageUnitOther || "").trim(),
       arrive: (drug.arrive || DEFAULT_ARRIVE).trim(),
       arriveOtherText: (drug.arriveOtherText || "").trim(),
-      dest: (drug.dest || DEFAULT_DEST).trim(),
+      dest: normalizeDestValue((drug.dest || DEFAULT_DEST).trim()),
       destSmallText: (drug.destSmallText || "").trim(),
       destOtherText: (drug.destOtherText || "").trim(),
       notes: (drug.notes || "").trim()
@@ -158,6 +170,110 @@
 
   function currentDrug() {
     return drugs[activeDrugIndex] || drugs[0];
+  }
+
+  function parseWholesalerNames(raw) {
+    const source = String(raw || "").replace(/／/g, "/");
+    const names = source
+      .split("/")
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+    return names.length ? names : DEFAULT_WHOLESALER_NAMES.slice();
+  }
+
+  function normalizeWholesalerList(raw) {
+    return parseWholesalerNames(raw).join("/");
+  }
+
+  function encodeDestVendorValue(name) {
+    const trimmed = String(name || "").trim();
+    if (!trimmed) return "";
+    return `${DEST_VENDOR_PREFIX}${encodeURIComponent(trimmed)}`;
+  }
+
+  function decodeDestVendorValue(value) {
+    const text = String(value || "").trim();
+    if (!text.startsWith(DEST_VENDOR_PREFIX)) return "";
+    const encoded = text.slice(DEST_VENDOR_PREFIX.length);
+    if (!encoded) return "";
+    try {
+      return decodeURIComponent(encoded).trim();
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function mapLegacyDestToName(value) {
+    const text = String(value || "").trim();
+    if (text === "destMediceo") return "メディセオ";
+    if (text === "destSuzuken") return "スズケン";
+    if (text === "destVital") return "バイタル";
+    if (text === "destAlfresa") return "アルフレッサ";
+    return "";
+  }
+
+  function normalizeDestValue(value) {
+    const text = String(value || "").trim();
+    if (!text) return DEFAULT_DEST;
+
+    const vendorName = decodeDestVendorValue(text);
+    if (vendorName) return encodeDestVendorValue(vendorName);
+
+    const legacyVendorName = mapLegacyDestToName(text);
+    if (legacyVendorName) return encodeDestVendorValue(legacyVendorName);
+
+    if (text === "destUnknown" || text === "destSmall" || text === "destOther") {
+      return text;
+    }
+    return DEFAULT_DEST;
+  }
+
+  function createDestChoice(value, label, checked) {
+    const wrapper = document.createElement("label");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "dest";
+    radio.value = value;
+    radio.checked = !!checked;
+    wrapper.appendChild(radio);
+    wrapper.appendChild(document.createTextNode(` ${label}`));
+    return wrapper;
+  }
+
+  function hasDestinationValue(value) {
+    const radios = Array.from(document.querySelectorAll("input[name='dest']"));
+    return radios.some((radio) => radio instanceof HTMLInputElement && radio.value === value);
+  }
+
+  function refreshDestinationChoices() {
+    if (!elDestinationChoices) return;
+
+    const drugState = currentDrug();
+    const currentValue = normalizeDestValue(drugState?.dest || selectedValue("dest") || DEFAULT_DEST);
+
+    elDestinationChoices.innerHTML = "";
+    elDestinationChoices.appendChild(createDestChoice("destUnknown", "不明", currentValue === "destUnknown"));
+    wholesalerNames.forEach((name) => {
+      const value = encodeDestVendorValue(name);
+      elDestinationChoices.appendChild(createDestChoice(value, name, currentValue === value));
+    });
+    elDestinationChoices.appendChild(createDestChoice("destSmall", "小分け", currentValue === "destSmall"));
+    elDestinationChoices.appendChild(createDestChoice("destOther", "その他", currentValue === "destOther"));
+
+    const nextValue = hasDestinationValue(currentValue) ? currentValue : DEFAULT_DEST;
+    setRadioValue("dest", nextValue, DEFAULT_DEST);
+    if (drugState) {
+      drugState.dest = nextValue;
+    }
+  }
+
+  function applyWholesalerList(raw) {
+    wholesalerListText = normalizeWholesalerList(raw);
+    wholesalerNames = parseWholesalerNames(wholesalerListText);
+    if (elWholesalerList && elWholesalerList.value !== wholesalerListText) {
+      elWholesalerList.value = wholesalerListText;
+    }
+    refreshDestinationChoices();
   }
 
   function renderBusyOverlayText() {
@@ -432,6 +548,7 @@
       page1YellowFrameThicknessMaxTenthsMm,
       DEFAULT_PAGE1_YELLOW_FRAME_THICKNESS_TENTHS_MM
     );
+    applyWholesalerList(settings?.wholesalerList || wholesalerListText || DEFAULT_WHOLESALER_LIST);
 
     if (elStartupWindowScale) {
       elStartupWindowScale.min = String(startupMin);
@@ -462,7 +579,8 @@
       printerName: (elPrinterName?.value || "").trim(),
       startupWindowScalePercent,
       uiScalePercent: userUiScalePercent,
-      page1YellowFrameThicknessTenthsMm
+      page1YellowFrameThicknessTenthsMm,
+      wholesalerList: wholesalerListText
     });
   }
 
@@ -1069,13 +1187,78 @@
     }
   }
 
-  function tomorrowAmLabelForSummary() {
-    const today = new Date();
-    let target = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    if (today.getDay() === 5) target = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3);
-    if (today.getDay() === 6) target = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+  function addDaysOnly(baseDate, days) {
+    return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + days);
+  }
+
+  function nextArrivalAmDate(today) {
+    if (today.getDay() === 5) return addDaysOnly(today, 3);
+    if (today.getDay() === 6) return addDaysOnly(today, 2);
+    return addDaysOnly(today, 1);
+  }
+
+  function weekdayArrivalAmDate(today) {
+    let target = addDaysOnly(today, 2);
+    if (today.getDay() === 4) target = addDaysOnly(today, 4);
+
+    const tomorrowAm = nextArrivalAmDate(today);
+    if (tomorrowAm.getDay() === 1) target = addDaysOnly(tomorrowAm, 1);
+
+    return target;
+  }
+
+  function weekdayNextArrivalAmDate(today) {
+    const base = weekdayArrivalAmDate(today);
+    const next = addDaysOnly(base, 1);
+    if (next.getDay() === 6) return addDaysOnly(next, 2);
+    return next;
+  }
+
+  function formatArrivalAmSummary(target) {
     const dows = ["日", "月", "火", "水", "木", "金", "土"];
     return `${target.getMonth() + 1}/${target.getDate()}(${dows[target.getDay()]})AM`;
+  }
+
+  function formatDatePickerValueAsArrivalText(raw) {
+    const text = String(raw || "").trim();
+    if (!text) return "";
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+    if (!m) return "";
+
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.getFullYear() !== year ||
+      (date.getMonth() + 1) !== month ||
+      date.getDate() !== day
+    ) {
+      return "";
+    }
+    return formatArrivalAmSummary(date);
+  }
+
+  function tomorrowAmLabelForSummary() {
+    return formatArrivalAmSummary(nextArrivalAmDate(new Date()));
+  }
+
+  function weekdayAmLabelForSummary() {
+    return formatArrivalAmSummary(weekdayArrivalAmDate(new Date()));
+  }
+
+  function weekdayNextAmLabelForSummary() {
+    return formatArrivalAmSummary(weekdayNextArrivalAmDate(new Date()));
+  }
+
+  function updateArrivalOptionLabels() {
+    if (elArriveWeekdayAmLabel) {
+      elArriveWeekdayAmLabel.textContent = weekdayAmLabelForSummary();
+    }
+    if (elArriveWeekdayNextAmLabel) {
+      elArriveWeekdayNextAmLabel.textContent = weekdayNextAmLabelForSummary();
+    }
   }
 
   function buildUnitLabel(drugState) {
@@ -1120,17 +1303,17 @@
     if (val === "arriveUndecided") return "未定";
     if (val === "arriveTodayPm") return "本日PM";
     if (val === "arriveTomorrowAm") return tomorrowAmLabelForSummary();
+    if (val === "arriveWeekdayAm") return formatArrivalAmSummary(weekdayArrivalAmDate(new Date()));
+    if (val === "arriveWeekdayNextAm") return formatArrivalAmSummary(weekdayNextArrivalAmDate(new Date()));
     if (val === "arriveOther") return (drugState.arriveOtherText || "").trim();
     return "";
   }
 
   function buildDestSummary(drugState) {
-    const val = drugState.dest || DEFAULT_DEST;
+    const val = normalizeDestValue(drugState.dest || DEFAULT_DEST);
     if (val === "destUnknown") return "不明";
-    if (val === "destMediceo") return "メディセオ";
-    if (val === "destSuzuken") return "スズケン";
-    if (val === "destVital") return "バイタル";
-    if (val === "destAlfresa") return "アルフレッサ";
+    const vendor = decodeDestVendorValue(val) || mapLegacyDestToName(val);
+    if (vendor) return vendor;
     if (val === "destSmall") {
       const small = (drugState.destSmallText || "").trim();
       return small ? `小分け（${small}）` : "小分け";
@@ -1198,15 +1381,19 @@
     }
 
     const arrive = drugState.arrive || DEFAULT_ARRIVE;
+    if (elArriveOtherRow) {
+      elArriveOtherRow.hidden = arrive !== "arriveOther";
+    }
     if (elArriveOtherText) {
-      elArriveOtherText.hidden = arrive !== "arriveOther";
       if (arrive !== "arriveOther") {
         drugState.arriveOtherText = "";
         elArriveOtherText.value = "";
+        if (elArriveOtherDatePicker) elArriveOtherDatePicker.value = "";
       }
     }
 
-    const dest = drugState.dest || DEFAULT_DEST;
+    const dest = normalizeDestValue(drugState.dest || DEFAULT_DEST);
+    drugState.dest = dest;
     if (elDestSmallText) {
       elDestSmallText.hidden = dest !== "destSmall";
       if (dest !== "destSmall") {
@@ -1242,8 +1429,8 @@
         useEmptyTone: (drugState.arrive || DEFAULT_ARRIVE) === "arriveUndecided"
       });
       setSummary(elSummaryDest, buildDestSummary(drugState), {
-        isComplete: (drugState.dest || DEFAULT_DEST) !== "destUnknown",
-        useEmptyTone: (drugState.dest || DEFAULT_DEST) === "destUnknown"
+        isComplete: normalizeDestValue(drugState.dest || DEFAULT_DEST) !== "destUnknown",
+        useEmptyTone: normalizeDestValue(drugState.dest || DEFAULT_DEST) === "destUnknown"
       });
       setSummary(elSummaryNotes, buildNotesSummary(drugState.notes || ""));
     }
@@ -1285,6 +1472,7 @@
       if (drugState.notes !== limitedNotes) drugState.notes = limitedNotes;
     }
 
+    drugState.dest = normalizeDestValue(drugState.dest || DEFAULT_DEST);
     setRadioValue("arrive", drugState.arrive, DEFAULT_ARRIVE);
     setRadioValue("dest", drugState.dest, DEFAULT_DEST);
     setDrugTypeButtons(drugState.drugType);
@@ -1305,7 +1493,7 @@
     drugState.shortageUnitOther = elShortageUnitOther?.value || "";
     drugState.arrive = selectedValue("arrive") || DEFAULT_ARRIVE;
     drugState.arriveOtherText = elArriveOtherText?.value || "";
-    drugState.dest = selectedValue("dest") || DEFAULT_DEST;
+    drugState.dest = normalizeDestValue(selectedValue("dest") || DEFAULT_DEST);
     drugState.destSmallText = elDestSmallText?.value || "";
     drugState.destOtherText = elDestOtherText?.value || "";
     const limitedNotes = limitNotesLines(elNotes?.value || "");
@@ -1542,7 +1730,7 @@
     drugs[0].shortageCount = "7";
     drugs[0].shortageDays = "14";
     drugs[0].arrive = "arriveTomorrowAm";
-    drugs[0].dest = "destMediceo";
+    drugs[0].dest = encodeDestVendorValue("メディセオ");
     drugs[0].notes = "run_dev.bat 起動時のテスト用初期値";
 
     renderDrugTabs();
@@ -1752,8 +1940,36 @@
     });
   });
 
-  document.querySelectorAll("input[name='dest']").forEach((el) => {
-    el.addEventListener("change", () => {
+  if (elArriveOtherDateBtn && elArriveOtherDatePicker) {
+    elArriveOtherDateBtn.addEventListener("click", () => {
+      try {
+        if (typeof elArriveOtherDatePicker.showPicker === "function") {
+          elArriveOtherDatePicker.showPicker();
+          return;
+        }
+      } catch (_) {
+        // fallback below
+      }
+      elArriveOtherDatePicker.click();
+    });
+  }
+
+  if (elArriveOtherDatePicker) {
+    elArriveOtherDatePicker.addEventListener("change", () => {
+      const next = formatDatePickerValueAsArrivalText(elArriveOtherDatePicker.value);
+      if (next && elArriveOtherText) elArriveOtherText.value = next;
+      syncDrugFromInputs();
+      updateSummariesAndState();
+      if (elArriveOtherText) elArriveOtherText.focus();
+    });
+  }
+
+  if (elDestinationChoices) {
+    elDestinationChoices.addEventListener("change", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.name !== "dest") return;
+
       const step4Item = document.querySelector(".qa-item[data-step='4']");
       const shouldAnimate = step4Item instanceof HTMLElement && step4Item.classList.contains("open");
 
@@ -1767,7 +1983,7 @@
       if (selected === "destSmall" && elDestSmallText) elDestSmallText.focus();
       if (selected === "destOther" && elDestOtherText) elDestOtherText.focus();
     });
-  });
+  }
 
   document.addEventListener("keydown", (e) => {
     if (isBusy) {
@@ -1813,6 +2029,16 @@
 
   if (elPrinterName) {
     elPrinterName.addEventListener("change", () => {
+      postSettingsToHost();
+    });
+  }
+
+  if (elWholesalerList) {
+    elWholesalerList.addEventListener("change", () => {
+      applyWholesalerList(elWholesalerList.value);
+      syncDrugFromInputs();
+      updateDynamicInputs();
+      updateSummariesAndState();
       postSettingsToHost();
     });
   }
@@ -1949,8 +2175,10 @@
     uiScaleMax: MAX_UI_SCALE_PERCENT,
     page1YellowFrameThicknessTenthsMm: DEFAULT_PAGE1_YELLOW_FRAME_THICKNESS_TENTHS_MM,
     page1YellowFrameThicknessMinTenthsMm: MIN_PAGE1_YELLOW_FRAME_THICKNESS_TENTHS_MM,
-    page1YellowFrameThicknessMaxTenthsMm: MAX_PAGE1_YELLOW_FRAME_THICKNESS_TENTHS_MM
+    page1YellowFrameThicknessMaxTenthsMm: MAX_PAGE1_YELLOW_FRAME_THICKNESS_TENTHS_MM,
+    wholesalerList: DEFAULT_WHOLESALER_LIST
   });
+  updateArrivalOptionLabels();
   renderDrugTabs();
   loadCurrentDrugIntoInputs();
   openStep(0, true, false);

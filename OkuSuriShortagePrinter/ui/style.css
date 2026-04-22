@@ -523,7 +523,7 @@ textarea {
   padding: 9px 10px;
   border: 1px solid #d7e0ee;
   border-radius: 10px;
-  background: #fbfdff;
+  background: var(--input-bg);
 }
 
 .choices label {
@@ -546,8 +546,58 @@ textarea {
   margin-top: 8px;
 }
 
+.sub-input-row {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0;
+  align-items: center;
+  position: relative;
+}
+
+.sub-input-row .sub-input {
+  margin-top: 0;
+}
+
+.sub-input-calendar-btn {
+  min-width: 12px;
+  height: 100%;
+  padding: 0 4px;
+  position: relative;
+  top: 4px;
+  left: 6px;
+  margin-right: -6px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #234;
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sub-input-calendar-btn:hover {
+  transform: scale(1.05);
+}
+
+.sub-input-calendar-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.date-picker-proxy {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .qa-item[data-step="3"] .sub-input {
-  margin-top: -6px;
+  margin-top: 8px;
 }
 
 .drug-type-row {
@@ -967,13 +1017,21 @@ textarea {
 
 .settings-item {
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 6px;
 }
 
 .settings-label {
   font-size: var(--font-size-small);
   color: var(--muted);
   font-weight: 700;
+  margin: 0;
+}
+
+.settings-item > :not(.settings-label) {
+  grid-column: 2;
 }
 
 .settings-item .printer-select {
@@ -998,6 +1056,16 @@ textarea {
   text-align: right;
   font-size: var(--font-size-medium);
   font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .settings-item {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-item > :not(.settings-label) {
+    grid-column: 1;
+  }
 }
 
 .preview-modal {
