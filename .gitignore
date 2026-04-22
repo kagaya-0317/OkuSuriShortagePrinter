@@ -1,0 +1,41 @@
+# .NET / Visual Studio
+**/[Bb]in/
+**/[Oo]bj/
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build/publish outputs
+/publish/
+*.pdb
+*.cache
+*.tmp
+*.log
+
+# App runtime/cache artifacts
+*.WebView2/
+
+# Windows noise
+Thumbs.db
+Desktop.ini
+
+# Local shortcuts
+*.lnk
+
+# Tooling temporary artifacts in this repo
+/tools/tmp_*/
+/tools/recovery_candidates*/
+/tools/recovery_backup_*/
+/tools/docx_extract/
+/tools/_*
+/tools/publish_diag.log
+/tools/word_text_extract.txt
+/tools/MainForm_decompiled.cs
+/tools/MainForm_corrupted_backup.cs
+/tools/PrintHtmlBuilder.decompiled.cs
+
+# Manual backup snapshots
+*.broken-*
