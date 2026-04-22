@@ -759,6 +759,66 @@
     });
   }
 
+  function buildRoundedLeftTailBubblePath(width, height, strokeHalf, bodyLeft, centerY, tailHalf, tailTipX) {
+    const left = bodyLeft;
+    const right = width - strokeHalf;
+    const top = strokeHalf;
+    const bottom = height - strokeHalf;
+    const maxRadius = Math.max(1, Math.floor(Math.min((right - left) / 2 - 1, (bottom - top) / 2 - 1)));
+    const cornerRadius = Math.min(10, maxRadius);
+    const tailTop = Math.max(top + cornerRadius + 1, centerY - tailHalf);
+    const tailBottom = Math.min(bottom - cornerRadius - 1, centerY + tailHalf);
+
+    return [
+      `M ${left + cornerRadius} ${top}`,
+      `H ${right - cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${right} ${top + cornerRadius}`,
+      `V ${bottom - cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${right - cornerRadius} ${bottom}`,
+      `H ${left + cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${left} ${bottom - cornerRadius}`,
+      `V ${tailBottom}`,
+      `L ${tailTipX} ${centerY}`,
+      `L ${left} ${tailTop}`,
+      `V ${top + cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${left + cornerRadius} ${top}`,
+      "Z"
+    ].join(" ");
+  }
+
+  function buildRoundedBottomTailBubblePath(width, height, strokeHalf, tailBaseY, centerX, tailHalf) {
+    const left = strokeHalf;
+    const right = width - strokeHalf;
+    const top = strokeHalf;
+    const bodyBottom = tailBaseY;
+    const maxRadius = Math.max(1, Math.floor(Math.min((right - left) / 2 - 1, (bodyBottom - top) / 2 - 1)));
+    const cornerRadius = Math.min(7, maxRadius);
+    const safeTailHalf = Math.max(
+      2,
+      Math.min(
+        tailHalf,
+        Math.floor(centerX - left - cornerRadius - 1),
+        Math.floor(right - centerX - cornerRadius - 1)
+      )
+    );
+
+    return [
+      `M ${left + cornerRadius} ${top}`,
+      `H ${right - cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${right} ${top + cornerRadius}`,
+      `V ${bodyBottom - cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${right - cornerRadius} ${bodyBottom}`,
+      `H ${centerX + safeTailHalf}`,
+      `L ${centerX} ${height - strokeHalf}`,
+      `L ${centerX - safeTailHalf} ${bodyBottom}`,
+      `H ${left + cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${left} ${bodyBottom - cornerRadius}`,
+      `V ${top + cornerRadius}`,
+      `A ${cornerRadius} ${cornerRadius} 0 0 1 ${left + cornerRadius} ${top}`,
+      "Z"
+    ].join(" ");
+  }
+
   function layoutDrugAddTipBubble() {
     const bubble = elDrugTabs?.querySelector(".drug-tab-add.show-drug-add-tip .drug-add-tip-bubble");
     if (!(bubble instanceof HTMLElement)) return;
@@ -776,16 +836,7 @@
     const tailHalf = Math.min(4, Math.max(2, Math.floor((height - 8) / 4)));
     const tailTipX = strokeHalf;
 
-    const d = [
-      `M ${bodyLeft} ${strokeHalf}`,
-      `H ${width - strokeHalf}`,
-      `V ${height - strokeHalf}`,
-      `H ${bodyLeft}`,
-      `V ${centerY + tailHalf}`,
-      `L ${tailTipX} ${centerY}`,
-      `L ${bodyLeft} ${centerY - tailHalf}`,
-      "Z"
-    ].join(" ");
+    const d = buildRoundedLeftTailBubblePath(width, height, strokeHalf, bodyLeft, centerY, tailHalf, tailTipX);
 
     setTipBubblePath(svg, d, width, height);
   }
@@ -808,16 +859,7 @@
     const maxTailHalf = Math.max(3, Math.floor(width / 2 - strokeHalf - 4));
     const tailHalf = Math.min(6, maxTailHalf);
 
-    const d = [
-      `M ${strokeHalf} ${strokeHalf}`,
-      `H ${width - strokeHalf}`,
-      `V ${tailBaseY}`,
-      `H ${centerX + tailHalf}`,
-      `L ${centerX} ${height - strokeHalf}`,
-      `L ${centerX - tailHalf} ${tailBaseY}`,
-      `H ${strokeHalf}`,
-      "Z"
-    ].join(" ");
+    const d = buildRoundedBottomTailBubblePath(width, height, strokeHalf, tailBaseY, centerX, tailHalf);
 
     setTipBubblePath(svg, d, width, height);
   }
@@ -840,16 +882,7 @@
     const maxTailHalf = Math.max(3, Math.floor(width / 2 - strokeHalf - 4));
     const tailHalf = Math.min(6, maxTailHalf);
 
-    const d = [
-      `M ${strokeHalf} ${strokeHalf}`,
-      `H ${width - strokeHalf}`,
-      `V ${tailBaseY}`,
-      `H ${centerX + tailHalf}`,
-      `L ${centerX} ${height - strokeHalf}`,
-      `L ${centerX - tailHalf} ${tailBaseY}`,
-      `H ${strokeHalf}`,
-      "Z"
-    ].join(" ");
+    const d = buildRoundedBottomTailBubblePath(width, height, strokeHalf, tailBaseY, centerX, tailHalf);
 
     setTipBubblePath(svg, d, width, height);
   }
@@ -872,16 +905,7 @@
     const maxTailHalf = Math.max(3, Math.floor(width / 2 - strokeHalf - 4));
     const tailHalf = Math.min(6, maxTailHalf);
 
-    const d = [
-      `M ${strokeHalf} ${strokeHalf}`,
-      `H ${width - strokeHalf}`,
-      `V ${tailBaseY}`,
-      `H ${centerX + tailHalf}`,
-      `L ${centerX} ${height - strokeHalf}`,
-      `L ${centerX - tailHalf} ${tailBaseY}`,
-      `H ${strokeHalf}`,
-      "Z"
-    ].join(" ");
+    const d = buildRoundedBottomTailBubblePath(width, height, strokeHalf, tailBaseY, centerX, tailHalf);
 
     setTipBubblePath(svg, d, width, height);
   }
@@ -944,7 +968,7 @@
     bubble.setAttribute("aria-hidden", "true");
 
     bubble.appendChild(
-      createTipBubbleSvg("M13 1.5H98.5V98.5H13V54L1.5 50L13 46Z", "#ffe4ef", "#e7aeca")
+      createTipBubbleSvg("M13 1.5H92A6.5 6.5 0 0 1 98.5 8V92A6.5 6.5 0 0 1 92 98.5H13A6.5 6.5 0 0 1 6.5 92V58L1.5 50L6.5 42V8A6.5 6.5 0 0 1 13 1.5Z", "#d81b60", "#e7aeca")
     );
 
     const text = document.createElement("span");

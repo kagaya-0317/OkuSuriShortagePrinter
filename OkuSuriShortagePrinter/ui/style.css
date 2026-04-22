@@ -273,7 +273,7 @@ body {
   width: max-content;
   max-width: none;
   white-space: nowrap;
-  color: #6d1f44;
+  color: #fff;
   font-size: var(--font-size-small);
   font-weight: 700;
   font-family: "Meiryo UI", "Meiryo", "Yu Gothic UI", sans-serif;
@@ -288,7 +288,7 @@ body {
 
 .drug-tab-add.show-drug-add-tip .drug-add-tip-bubble .tip-svg,
 .drug-tab-add.show-drug-add-tip .drug-add-tip-bubble .tip-text {
-  animation: tip-bubble-float 2400ms ease-in-out 240ms infinite;
+  animation: tip-bubble-float 2000ms ease-in-out 240ms infinite;
 }
 
 .drug-add-tip-bubble .tip-svg {
@@ -495,6 +495,14 @@ input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:foc
 textarea {
   resize: none;
   min-height: 80px;
+}
+
+.tip-svg {
+  filter: drop-shadow(0 3px 6px rgba(17, 25, 37, .28));
+}
+
+.tip-svg path[fill="none"] {
+  display: none;
 }
 
 .shortage-grid {
@@ -859,7 +867,7 @@ textarea {
   white-space: normal;
   width: max-content;
   max-width: none;
-  color: #5b3600;
+  color: #fff;
   font-size: var(--font-size-small);
   font-weight: 700;
   font-family: "Meiryo UI", "Meiryo", "Yu Gothic UI", sans-serif;
@@ -877,7 +885,7 @@ textarea {
   white-space: normal;
   width: max-content;
   max-width: none;
-  color: #6d1f2a;
+  color: #fff;
   font-size: var(--font-size-small);
   font-weight: 700;
   font-family: "Meiryo UI", "Meiryo", "Yu Gothic UI", sans-serif;
@@ -898,14 +906,14 @@ textarea {
 
 #btnPrint.show-print-ready-tip .print-ready-tip-bubble .tip-svg,
 #btnPrint.show-print-ready-tip .print-ready-tip-bubble .tip-text {
-  animation: tip-bubble-float 2400ms ease-in-out 240ms infinite;
+  animation: tip-bubble-float 2000ms ease-in-out 240ms infinite;
 }
 
 #btnPrintWrap.show-print-missing-tip .print-missing-tip-bubble .tip-svg,
 #btnPrintWrap.show-print-missing-tip .print-missing-tip-bubble .tip-text,
 #btnPreviewPrintWrap.show-print-missing-tip .print-missing-tip-bubble .tip-svg,
 #btnPreviewPrintWrap.show-print-missing-tip .print-missing-tip-bubble .tip-text {
-  animation: tip-bubble-float 2400ms ease-in-out 240ms infinite;
+  animation: tip-bubble-float 2000ms ease-in-out 240ms infinite;
 }
 
 .print-ready-tip-bubble .tip-svg,
@@ -924,6 +932,7 @@ textarea {
   white-space: pre;
   line-height: 1.45;
   padding: 8px 12px 20px;
+  color: #fff;
 }
 
 @keyframes print-ready-tip-fade-in {

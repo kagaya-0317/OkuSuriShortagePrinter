@@ -52,6 +52,11 @@ if exist "%~dp0OkuSuriShortagePrinter\ui\icon.png" (
 if exist "%~dp0OkuSuriShortagePrinter\app.ico" (
   copy /y "%~dp0OkuSuriShortagePrinter\app.ico" "%~dp0publish\app.ico" >nul
 )
+if exist "%~dp0apply_update.bat" (
+  copy /y "%~dp0apply_update.bat" "%~dp0publish\apply_update.bat" >nul
+) else (
+  echo [WARN] apply_update.bat not found. Skip updater script copy.
+)
 call :make_shortcut "%~dp0publish\OkuSuriShortagePrinter.exe" "%SHORTCUT_DIR%" "%~dp0publish\app.ico"
 if errorlevel 1 exit /b 1
 echo [OK] Done.
